@@ -1,0 +1,90 @@
+
+html{
+    margin: 0px !important;
+    width: 100% !important;
+}
+
+body{
+    width: 100% !important
+    margin:0px !important;
+}
+
+ html, body, #viewDiv {
+    height: 100%;
+    width: 100%;
+  }
+
+.row{
+    height: 100%
+
+}
+
+.col-md-3{
+    height: 100%;
+    padding: 0px !important;
+    background-color: #e7eff1 !important;
+
+    width: 30% !important
+}
+
+.col-md-9{
+    width: 70% !important;
+    padding: 0px !important;
+    height: 100% !important;
+}
+
+#infoDiv {
+    height: 100%;
+    background-color: #d4ecef !important;
+    width: 100%;
+  }
+
+
+
+  #sortableList{
+        margin-left: 30px;
+        padding: 0;
+        width: 255px;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        list-style-type:circle;
+      }
+
+
+
+
+
+
+     .li-sort {
+        list-style: none;
+        border: 1px solid #CCC;
+        background: #F6F6F6;
+        font-family: "Tahoma";
+        color: rgb(33, 32, 32);
+        background-color: rgb(171, 176, 181);
+
+      }
+
+      .boton-Principa{
+        margin-left: 14px;
+      }
+
+      section {
+        display: block;
+      }
+
+
+
+      .tab-pane{
+        background-color: #E5EDF9;
+      }
+
+
+      .bttons{
+        background-color: transparent !important;
+        color: #337ab7 !important ;
+      }

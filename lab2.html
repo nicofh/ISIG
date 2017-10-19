@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+        <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
+        <script src="https://js.arcgis.com/4.5/"></script>
+        <link rel="stylesheet" href="css/styles.css">
+        <link rel="stylesheet" href="css/bootstrap.css">
+
+        <title>Obligatorio2-ISIG2017</title>
+
+        <script type="text/javascript">
+           require([
+          "esri/Map",
+          "esri/views/MapView",
+          "dojo/domReady!"
+        ], function(Map, MapView) {
+          var map = new Map({
+            basemap: "streets"
+          });
+
+          var view = new MapView({
+            container: "viewDiv",  // Reference to the DOM node that will contain the view
+            map: map               // References the map object created in step 3
+          });
+        });
+
+           //traduce nombre a coordenadas
+           // locator = new Locator("http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer");
+
+
+
+          function generarRuta(){
+            alert("generar")
+          }
+
+
+          function guardarRuta(){
+
+          }
+
+        </script>
+
+    </head>
+
+    <body>
+
+          <div class="row">
+
+            <!--Barra lateral-->
+            <div class="col-md-3 ">
+
+                <ul class="nav nav-pills" style="background-color:#d4d4d4">
+                  <li class="active" style="padding-left:10px"><a data-toggle="pill" href="#home">Inicio</a></li>
+                  <li><a data-toggle="pill" href="#menu1">Simulacion</a></li>
+
+                </ul>
+
+                 <div class="tab-content" style="margin-left:20px">
+                    <!--Menu Home-->
+                    <div id="home" class="tab-pane fade in active" >
+                       <h4>&nbsp Ruta</h4>
+                       <ul id="rutaList"  class="sortable list li-sort"  style="margin-left:10px; width:80%" >
+                       </ul>
+
+                       <button  onclick="generarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Generar Ruta</button>
+                       <button  onclick="guardarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Guardar Ruta</button>
+
+                      <br>
+                      <br>
+                      <div style="margin-left:10px">
+                       <h4> Seleccionar Ruta</h4>
+                       <select id="selRutas" name="selectRutas" style="width: 80%; border-radius:8px" ></select>
+                      </div>
+
+                    </div>
+                  </div>
+
+
+            </div>
+
+            <!--Seccion del mapa-->
+            <div class="col-md-9">
+              <input id="routeName" style="border-radius:10px; float:right" value="Route 1" placeholder="Write location..."> </input>
+              <div id="viewDiv"  ></div>
+
+            </div>
+
+
+
+
+          </body>
+
+
+
+    </body>
+</html>
