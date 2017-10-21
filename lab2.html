@@ -14,31 +14,96 @@
            require([
           "esri/Map",
           "esri/views/MapView",
-          "dojo/domReady!"
-        ], function(Map, MapView) {
+          "dojo/dom",
+           "dojo/on",
+           "esri/layers/TileLayer",
+
+           "esri/symbols/PictureMarkerSymbol",
+           "esri/renderers/SimpleRenderer",
+           "esri/layers/GraphicsLayer",
+           "esri/Graphic",
+
+           "dojo/domReady!"
+
+
+
+
+        ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic) {
           var map = new Map({
-            basemap: "streets"
+            basemap: "streets",
+
+
           });
 
           var view = new MapView({
             container: "viewDiv",  // Reference to the DOM node that will contain the view
             map: map               // References the map object created in step 3
           });
-        });
+
+          //var layer = new TileLayer("http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer");
+          //map.layers.add(layer);
+
+          view.then( function(event){
+            //view.on('click',addStop);
+          });
+          view.on('click',addStop);
+
+
+          //SIMBOLOS
+          var stopSymbol = new PictureMarkerSymbol('http://static.arcgis.com/images/Symbols/Basic/LightBlueShinyPin.png',51,51);
+
+
+          //CAPAS
+            //Capa de paradas
+            var capaParadas = new GraphicsLayer();
+            //var paradaRender = SimpleRenderer(stopSymbol);
+            //capaParadas.setRenderer(paradaRender);
+            map.layers.add(capaParadas);
+
+
+
+
 
            //traduce nombre a coordenadas
            // locator = new Locator("http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer");
 
 
+          var locationPoint;
+          function addStop(evt) {
+            console.log(evt,evt.mapPoint)
+            locationPoint = new Graphic(evt.mapPoint, stopSymbol);
+            console.log(locationPoint)
+            capaParadas.graphics.add(locationPoint)
+            //locator.locationToAddress(webMercatorUtils.webMercatorToGeographic(evt.mapPoint), 100);
 
-          function generarRuta(){
-            alert("generar")
+
           }
+
+
+
+          //GENERAR RUTAS
+
 
 
           function guardarRuta(){
 
           }
+
+          function generarRuta(){
+          }
+
+
+
+
+
+
+        });
+
+
+
+
+
+
 
         </script>
 
@@ -64,8 +129,8 @@
                        <ul id="rutaList"  class="sortable list li-sort"  style="margin-left:10px; width:80%" >
                        </ul>
 
-                       <button  onclick="generarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Generar Ruta</button>
-                       <button  onclick="guardarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Guardar Ruta</button>
+                       <button  id="generarRuta" class="btn btn-primary bttons" style="margin-left:10px">Generar Ruta</button>
+                       <button  onClick="guardarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Guardar Ruta</button>
 
                       <br>
                       <br>
@@ -82,9 +147,10 @@
 
             <!--Seccion del mapa-->
             <div class="col-md-9">
-              <input id="routeName" style="border-radius:10px; float:right" value="Route 1" placeholder="Write location..."> </input>
-              <div id="viewDiv"  ></div>
+              <input id="routeName" style="border-radius: 10px;float:right;margin-right: 20px;border-width: 1px;margin-top: 5px;margin-bottom: 5px;"  placeholder="Write location..."> </input>
 
+              <!--map div-->
+              <div id="viewDiv"  ></div>
             </div>
 
 
