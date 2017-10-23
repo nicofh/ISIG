@@ -25,6 +25,7 @@
            "esri/Graphic",
            "esri/geometry/support/webMercatorUtils",
            "esri/tasks/Locator",
+           "esri/widgets/Search",
 
 
            "dojo/domReady!"
@@ -32,7 +33,7 @@
 
 
 
-        ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator) {
+        ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search) {
           var map = new Map({
             basemap: "streets",
 
@@ -134,6 +135,41 @@
 
 
 
+          // SEARCH
+          var searchWidget = new Search({
+            view: view
+          });
+          // Adds the search widget below other elements in
+          // the top left corner of the view
+          view.ui.add(searchWidget, {
+            position: "top-right",
+            index: 2
+          });
+
+
+          var sources = [
+            {
+              locator: new Locator({ url: "//geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer" }),
+              singleLineFieldName: "SingleLine",
+              outFields: ["Addr_type"],
+              localSearchOptions: {
+                minScale: 300000,
+                distance: 50000
+              },
+              resultSymbol: stopSymbol
+            }
+          ];
+
+          searchWidget.sources = sources;
+
+
+
+          searchWidget.on("search-complete", function(event){
+            // The results are stored in the event Object[]
+            alert("termine busqueda");
+          });
+
+
 
 
         });
@@ -186,7 +222,7 @@
 
             <!--Seccion del mapa-->
             <div class="col-md-9" style="background-color:#e7eff1 !important">
-              <input id="routeName" style="border-radius: 10px;float:right;margin-right: 20px;border-width: 1px;margin-top: 5px;margin-bottom: 5px ; height:5% "  placeholder="Write location..."> </input>
+              <!-- <input id="routeName" style="border-radius: 10px;float:right;margin-right: 20px;border-width: 1px;margin-top: 5px;margin-bottom: 5px ; height:5% "  placeholder="Write location..."> </input> -->
 
               <!--map div-->
               <div id="viewDiv"  ></div>
