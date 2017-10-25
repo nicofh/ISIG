@@ -166,7 +166,17 @@
 
           searchWidget.on("search-complete", function(event){
             // The results are stored in the event Object[]
-            alert("termine busqueda");
+            var coordenadas = event.results[0].results[0].feature.geometry;
+            locationPoint = new Graphic(coordenadas, stopSymbol);
+            capaParadas.graphics.add(locationPoint);
+            tablaParadas.push({"address" :event.searchTerm,"latitude":coordenadas.latitude, "longitude":coordenadas.longitude}) ;
+            var list = document.getElementById('rutaList');
+            var nuevoItem = document.createElement('li');
+            nuevoItem.setAttribute('draggable','true');
+            nuevoItem.ondblclick = function() {sacarParada(this);}
+            nuevoItem.appendChild(document.createTextNode( '-      '+event.searchTerm));
+            list.appendChild(nuevoItem);
+            $("#rutaList").sortable('refresh');
           });
 
 
