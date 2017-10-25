@@ -11,34 +11,184 @@
         <title>Obligatorio2-ISIG2017</title>
 
         <script type="text/javascript">
+          var numParada=0;
            require([
           "esri/Map",
           "esri/views/MapView",
-          "dojo/domReady!"
-        ], function(Map, MapView) {
+          "dojo/dom",
+           "dojo/on",
+           "esri/layers/TileLayer",
+
+           "esri/symbols/PictureMarkerSymbol",
+           "esri/renderers/SimpleRenderer",
+           "esri/layers/GraphicsLayer",
+           "esri/Graphic",
+           "esri/geometry/support/webMercatorUtils",
+           "esri/tasks/Locator",
+           "esri/widgets/Search",
+
+
+           "dojo/domReady!"
+
+
+
+
+        ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search) {
           var map = new Map({
-            basemap: "streets"
+            basemap: "streets",
+
+
           });
 
           var view = new MapView({
             container: "viewDiv",  // Reference to the DOM node that will contain the view
-            map: map               // References the map object created in step 3
+            map: map,               // References the map object created in step 3
+            center: [-94.4035, 39.802],
+            zoom: 4
           });
-        });
 
-           //traduce nombre a coordenadas
-           // locator = new Locator("http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer");
+          var layer = new TileLayer("http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer");
+          map.layers.add(layer);
+
+          view.then( function(event){
+            //view.on('click',addStop);
+          });
+          view.on('click',addStop);
+
+          //variables
+          var tablaParadas = [];
+
+          //SIMBOLOS
+          var stopSymbol = new PictureMarkerSymbol('http://static.arcgis.com/images/Symbols/Basic/LightBlueShinyPin.png',51,51);
+
+
+          //CAPAS
+            //Capa de paradas
+            var capaParadas = new GraphicsLayer();
+            //var paradaRender = SimpleRenderer(stopSymbol);
+            //capaParadas.setRenderer(paradaRender);
+            map.layers.add(capaParadas);
 
 
 
-          function generarRuta(){
-            alert("generar")
+
+
+
+
+
+          //STOPS
+
+          //traduce nombre a coordenadas
+           var locator = new Locator("http://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer");
+
+          var locationPoint;
+          function addStop(evt) {
+            console.log(evt.mapPoint)
+            locationPoint = new Graphic(evt.mapPoint, stopSymbol);
+            capaParadas.graphics.add(locationPoint)
+            var result = locator.locationToAddress(webMercatorUtils.webMercatorToGeographic(evt.mapPoint), 100);
+            result.then(function(addressCandidate){
+                console.log(addressCandidate.address, addressCandidate.location.latitude, addressCandidate.location.longitude)
+                tablaParadas.push({"address" :addressCandidate.address,"latitude":addressCandidate.location.latitude, "longitude":addressCandidate.location.longitude}) ;
+
+                console.log("tabla",tablaParadas)
+                var list = document.getElementById('rutaList');
+                var nuevoItem = document.createElement('li');
+                nuevoItem.setAttribute('draggable','true');
+                nuevoItem.ondblclick = function() {sacarParada(this);}
+                nuevoItem.appendChild(document.createTextNode( '-      '+addressCandidate.address));
+                list.appendChild(nuevoItem);
+                $("#rutaList").sortable('refresh');
+            })
+
+          }
+
+          function sacarParada(parada){
+            var lugarRemovido = parada.innerHTML;
+            for(var j=0; j< tablaParadas.length; j++){
+              var elem=lugarRemovido.replace('-      ','');
+              if (elem === tablaParadas[j].address){
+                console.log("true",capaParadas.graphics.items[j])
+                capaParadas.graphics.remove(capaParadas.graphics.items[j])
+                tablaParadas.splice(j,1);
+                numParada--;
+              }
+            }
+            console.log(tablaParadas)
+            parada.parentNode.removeChild(parada);
           }
 
 
+
+
+
+          // RUTAS
           function guardarRuta(){
 
           }
+
+          function generarRuta(){
+            //tener en cuenta q cuando genera ruta tiene que seguir el orden de la rutalist del html, ya que ahi esta el orden
+            //en que se quiere obtener los puntos de la ruta.
+          }
+
+
+
+
+          // SEARCH
+          var searchWidget = new Search({
+            view: view
+          });
+          // Adds the search widget below other elements in
+          // the top left corner of the view
+          view.ui.add(searchWidget, {
+            position: "top-right",
+            index: 2
+          });
+
+
+          var sources = [
+            {
+              locator: new Locator({ url: "//geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer" }),
+              singleLineFieldName: "SingleLine",
+              outFields: ["Addr_type"],
+              localSearchOptions: {
+                minScale: 300000,
+                distance: 50000
+              },
+              resultSymbol: stopSymbol
+            }
+          ];
+
+          searchWidget.sources = sources;
+
+
+
+          searchWidget.on("search-complete", function(event){
+            // The results are stored in the event Object[]
+            var coordenadas = event.results[0].results[0].feature.geometry;
+            locationPoint = new Graphic(coordenadas, stopSymbol);
+            capaParadas.graphics.add(locationPoint);
+            tablaParadas.push({"address" :event.searchTerm,"latitude":coordenadas.latitude, "longitude":coordenadas.longitude}) ;
+            var list = document.getElementById('rutaList');
+            var nuevoItem = document.createElement('li');
+            nuevoItem.setAttribute('draggable','true');
+            nuevoItem.ondblclick = function() {sacarParada(this);}
+            nuevoItem.appendChild(document.createTextNode( '-      '+event.searchTerm));
+            list.appendChild(nuevoItem);
+            $("#rutaList").sortable('refresh');
+          });
+
+
+
+
+        });
+
+
+
+
+
+
 
         </script>
 
@@ -61,17 +211,17 @@
                     <!--Menu Home-->
                     <div id="home" class="tab-pane fade in active" >
                        <h4>&nbsp Ruta</h4>
-                       <ul id="rutaList"  class="sortable list li-sort"  style="margin-left:10px; width:80%" >
+                       <ul id="rutaList"  class="sortable list li-sort"  style="margin-left:10px; width:80%; padding:0px" >
                        </ul>
 
-                       <button  onclick="generarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Generar Ruta</button>
-                       <button  onclick="guardarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Guardar Ruta</button>
+                       <button  id="generarRuta" class="btn btn-primary bttons" style="margin-left:10px">Generar Ruta</button>
+                       <button  onClick="guardarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Guardar Ruta</button>
 
                       <br>
                       <br>
                       <div style="margin-left:10px">
                        <h4> Seleccionar Ruta</h4>
-                       <select id="selRutas" name="selectRutas" style="width: 80%; border-radius:8px" ></select>
+                       <select id="selRutas" name="selectRutas" style="width: 80%; border-radius:8px; background-color:rgba(243, 243, 243, 0.93) !important" ></select>
                       </div>
 
                     </div>
@@ -81,11 +231,14 @@
             </div>
 
             <!--Seccion del mapa-->
-            <div class="col-md-9">
-              <input id="routeName" style="border-radius:10px; float:right" value="Route 1" placeholder="Write location..."> </input>
-              <div id="viewDiv"  ></div>
+            <div class="col-md-9" style="background-color:#e7eff1 !important">
+              <!-- <input id="routeName" style="border-radius: 10px;float:right;margin-right: 20px;border-width: 1px;margin-top: 5px;margin-bottom: 5px ; height:5% "  placeholder="Write location..."> </input> -->
 
+              <!--map div-->
+              <div id="viewDiv"  ></div>
             </div>
+            <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+            <script src="js/jquery.sortable.js"></script>
 
 
 
