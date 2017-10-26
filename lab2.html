@@ -26,6 +26,10 @@
            "esri/geometry/support/webMercatorUtils",
            "esri/tasks/Locator",
            "esri/widgets/Search",
+            "esri/tasks/RouteTask",
+            "esri/tasks/support/RouteParameters",
+            "esri/tasks/support/FeatureSet",
+
 
 
            "dojo/domReady!"
@@ -33,7 +37,8 @@
 
 
 
-        ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search) {
+        ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
+            RouteParameters,FeatureSet) {
           var map = new Map({
             basemap: "streets",
 
@@ -46,6 +51,12 @@
             center: [-94.4035, 39.802],
             zoom: 4
           });
+
+
+
+          //buttons
+          on(dom.byId("generarRuta"), "click", generarRuta);
+
 
           var layer = new TileLayer("http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer");
           map.layers.add(layer);
@@ -123,14 +134,44 @@
 
 
           // RUTAS
+          var routeTask = new RouteTask("http://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/");
+          var routeParams = new RouteParameters();
+          routeParams.stops = new FeatureSet();
+
+
           function guardarRuta(){
 
           }
 
-          function generarRuta(){
+          function generarRuta(){ //resuelve la ruta
             //tener en cuenta q cuando genera ruta tiene que seguir el orden de la rutalist del html, ya que ahi esta el orden
             //en que se quiere obtener los puntos de la ruta.
+            var stops = document.getElementById('rutaList').getElementsByTagName('li');
+            var lugar;
+            console.log(stops)
+            for (var i=0; i < stops.length; i++){
+              lugar = stops[i].innerHTML;
+              console.log(lugar)
+              for(var j=0; j< tablaParadas.length; j++){
+                console.log()
+                if (lugar.replace('-      ','') == tablaParadas[j].address){
+                  routeParams.stops.features.push(capaParadas.graphics.items[j]);
+                }
+              }
+            }
+            console.log(routeParams.stops.features)
+
+            if(routeParams.stops.features.length>=2){
+                console.log("solve")
+                routeTask.solve(routeParams).then(mostrarRuta)
+
+            }
           }
+
+          function mostrarRuta(data){
+              console.log(data)
+          }
+
 
 
 
@@ -166,7 +207,8 @@
 
           searchWidget.on("search-complete", function(event){
             // The results are stored in the event Object[]
-            alert("termine busqueda");
+            console.log(event)
+            //alert("termine busqueda");
           });
 
 

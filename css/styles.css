@@ -13,7 +13,7 @@ body{
 }
 
  html, body, #viewDiv {
-    height: 95%;
+    height: 100%;
     width: 100%;
   }
 
