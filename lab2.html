@@ -29,6 +29,10 @@
             "esri/tasks/RouteTask",
             "esri/tasks/support/RouteParameters",
             "esri/tasks/support/FeatureSet",
+            "esri/core/urlUtils",
+             "esri/symbols/SimpleLineSymbol",
+             "esri/Color",
+
 
 
 
@@ -38,7 +42,14 @@
 
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
-            RouteParameters,FeatureSet) {
+            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color) {
+
+
+          urlUtils.addProxyRule({
+              urlPrefix: "route.arcgis.com",
+              proxyUrl: "http://localhost:8080/proxy/proxy.jsp"
+            });
+
           var map = new Map({
             basemap: "streets",
 
@@ -56,6 +67,8 @@
 
           //buttons
           on(dom.byId("generarRuta"), "click", generarRuta);
+          on(dom.byId("guardarRuta"), "click", guardarRuta);
+          on(dom.byId("limpiarTodo"), "click", limpiarTodo);
 
 
           var layer = new TileLayer("http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer");
@@ -133,13 +146,24 @@
 
 
 
+
+
           // RUTAS
+          var routeSymbol = new SimpleLineSymbol();
+
           var routeTask = new RouteTask("http://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/");
           var routeParams = new RouteParameters();
           routeParams.stops = new FeatureSet();
+          routeParams.outSpatialReference = {"wkid":102100};
+
 
 
           function guardarRuta(){
+
+            var rutaGuardada = new Graphic(routes[0].geometry, null,null);
+            var nombreRuta = $('#nombreRuta').val();
+            rutaGuardada.setAttributes({"notes":nombreRuta, "trailtype":2, "condition":2, "difficulty":1});
+            rutaLayerService.applyEdits([rutaGuardada],null,null,cargarRuta, null);
 
           }
 
@@ -159,17 +183,30 @@
                 }
               }
             }
-            console.log(routeParams.stops.features)
 
             if(routeParams.stops.features.length>=2){
-                console.log("solve")
                 routeTask.solve(routeParams).then(mostrarRuta)
 
             }
           }
 
           function mostrarRuta(data){
-              console.log(data)
+              var routeResult = data.routeResults[0].route;
+              routeResult.symbol = routeSymbol;
+              console.log(routeResult)
+              capaParadas.graphics.add(routeResult);
+          }
+
+
+          function limpiarTodo(){
+            for (var i=routeParams.stops.features.length-1; i>=0; i--) {
+              capaParadas.graphics.remove(routeParams.stops.features.splice(i, 1)[0]);
+            }
+            tablaParadas = [];
+            capaParadas.graphics.removeAll();
+            $('#rutaList').empty();
+            $("#rutaList").sortable('refresh');
+
           }
 
 
@@ -197,8 +234,16 @@
                 minScale: 300000,
                 distance: 50000
               },
-              resultSymbol: stopSymbol
-            }
+              resultSymbol: {
+                     type: "picture-marker",  // autocasts as new PictureMarkerSymbol()
+
+                     size: 0,
+                     width: 0,
+                     height: 0,
+                     xoffset: 0,
+                     yoffset: 0
+                 }
+                          }
           ];
 
           searchWidget.sources = sources;
@@ -252,12 +297,19 @@
                  <div class="tab-content" style="margin-left:20px">
                     <!--Menu Home-->
                     <div id="home" class="tab-pane fade in active" >
-                       <h4>&nbsp Ruta</h4>
+                       <input id="nombreRuta"  style="width: 150px;background-color:transparent;
+                                                      border-color:transparent; font-size:20px; margin-top:20px;
+                                                      margin-left:10px"
+                              placeholder="Nombre Ruta..."
+
+
+                        ></input>
+
                        <ul id="rutaList"  class="sortable list li-sort"  style="margin-left:10px; width:80%; padding:0px" >
                        </ul>
 
                        <button  id="generarRuta" class="btn btn-primary bttons" style="margin-left:10px">Generar Ruta</button>
-                       <button  onClick="guardarRuta()" class="btn btn-primary bttons" style="margin-left:10px">Guardar Ruta</button>
+                       <button  id="guardarRuta" class="btn btn-primary bttons" style="margin-left:10px">Guardar Ruta</button>
 
                       <br>
                       <br>
@@ -266,6 +318,10 @@
                        <select id="selRutas" name="selectRutas" style="width: 80%; border-radius:8px; background-color:rgba(243, 243, 243, 0.93) !important" ></select>
                       </div>
 
+                      <div style="margin-top:30px">
+                          <button  id="limpiarTodo" class="btn btn-primary bttons" style="margin-left:10px">Limpiar Todo</button>
+
+                       </div>
                     </div>
                   </div>
 
