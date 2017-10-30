@@ -39,6 +39,7 @@
 
 
 
+
            "dojo/domReady!"
 
 
@@ -46,6 +47,7 @@
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
             RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query) {
+
 
 
           urlUtils.addProxyRule({
@@ -91,21 +93,18 @@
 
           //CAPAS
             //Capa de paradas
-           // var capaParadas = new GraphicsLayer();
+            var capaParadas = new GraphicsLayer();
             //var paradaRender = SimpleRenderer(stopSymbol);
             //capaParadas.setRenderer(paradaRender);
-           // map.layers.add(capaParadas);
-
+            map.layers.add(capaParadas);
 
             //Capa de Eventos
-            var capaParadas = new FeatureLayer("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Events/FeatureServer/0",{
-            mode: esri.layers.FeatureLayer.MODE_ONDEMAND,
+            var capaEventos = new FeatureLayer("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Events/FeatureServer/0",{
+            mode: FeatureLayer.MODE_ONDEMAND,
             outFields: ["*"],
-            opacity: 0.9
+            opacity:0.9
             });
-            capaParadas.spatialReference=map.spatialReference;
-            capaParadas.setDefinitionExpression("description='grupo3'"); //elegimos que eventos mostrar
-            map.layers.add(capaParadas);
+            capaEventos.spatialReference=map.spatialReference;
 
 
 
@@ -189,6 +188,27 @@
 
           function guardarRuta(){
             console.log(rutaActual)
+
+            //AGREGAR EVENTOS
+           var stops = document.getElementById('rutaList').getElementsByTagName('li');
+            var lugar;
+            console.log(stops)
+            for (var i=0; i < stops.length; i++){
+              lugar = stops[i].innerHTML;
+              console.log(lugar)
+              for(var j=0; j< tablaParadas.length; j++){
+                console.log()
+                if (lugar.replace('-      ','') == tablaParadas[j].address){
+                   var evento = new Graphic(capaParadas.graphics.items[j].geometry, null,null);
+                   var nombreRuta = $('#routeName').val();
+                   evento.setAttribute("event_type",3);
+                   evento.setAttribute("description", nombreRuta);
+                   capaEventos.applyEdits({addFeatures:[evento]});
+                }
+              }
+            }
+
+
             var rutaGuardada = new Graphic(rutaActual.items[0].geometry, null,null);
             var nombreRuta = $('#routeName').val();
             rutaGuardada.setAttribute("trailtype",2);
@@ -201,6 +221,8 @@
               console.log(data);
               cargarRutas();
             });
+
+
 
           }
 
