@@ -91,12 +91,21 @@
 
           //CAPAS
             //Capa de paradas
-            var capaParadas = new GraphicsLayer();
+           // var capaParadas = new GraphicsLayer();
             //var paradaRender = SimpleRenderer(stopSymbol);
             //capaParadas.setRenderer(paradaRender);
+           // map.layers.add(capaParadas);
+
+
+            //Capa de Eventos
+            var capaParadas = new FeatureLayer("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Events/FeatureServer/0",{
+            mode: esri.layers.FeatureLayer.MODE_ONDEMAND,
+            outFields: ["*"],
+            opacity: 0.9
+            });
+            capaParadas.spatialReference=map.spatialReference;
+            capaParadas.setDefinitionExpression("description='grupo3'"); //elegimos que eventos mostrar
             map.layers.add(capaParadas);
-
-
 
 
 
