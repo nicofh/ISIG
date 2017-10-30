@@ -32,6 +32,9 @@
             "esri/core/urlUtils",
              "esri/symbols/SimpleLineSymbol",
              "esri/Color",
+            "esri/layers/FeatureLayer",
+            "esri/tasks/QueryTask",
+             "esri/tasks/support/Query",
 
 
 
@@ -42,7 +45,7 @@
 
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
-            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color) {
+            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query) {
 
 
           urlUtils.addProxyRule({
@@ -149,6 +152,23 @@
 
 
           // RUTAS
+
+          //Rutas Layer
+
+          //Capa de Rutas
+          var capaRutas = new GraphicsLayer();
+            //var paradaRender = SimpleRenderer(stopSymbol);
+            //capaParadas.setRenderer(paradaRender);
+            map.layers.add(capaRutas);
+
+          //ruta layer service
+          var rutaLayerService = new FeatureLayer("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Recreation/FeatureServer/1",{
+            mode: FeatureLayer.MODE_ONDEMAND,
+            outFields: ["*"]
+          });
+          rutaLayerService.spatialReference = map.spatialReference;
+
+          var rutaActual;
           var routeSymbol = new SimpleLineSymbol();
 
           var routeTask = new RouteTask("http://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/");
@@ -159,15 +179,29 @@
 
 
           function guardarRuta(){
-
-            var rutaGuardada = new Graphic(routes[0].geometry, null,null);
-            var nombreRuta = $('#nombreRuta').val();
-            rutaGuardada.setAttributes({"notes":nombreRuta, "trailtype":2, "condition":2, "difficulty":1});
-            rutaLayerService.applyEdits([rutaGuardada],null,null,cargarRuta, null);
+            console.log(rutaActual)
+            var rutaGuardada = new Graphic(rutaActual.items[0].geometry, null,null);
+            var nombreRuta = $('#routeName').val();
+            rutaGuardada.setAttribute("trailtype",2);
+            rutaGuardada.setAttribute("condition",2);
+            rutaGuardada.setAttribute("difficulty",1);
+            rutaGuardada.setAttribute("notes", nombreRuta)
+            var date =new Date("July 19, 1950 11:13:00");
+            rutaGuardada.setAttribute("recordedon",19061950)
+            rutaLayerService.applyEdits({addFeatures:[rutaGuardada]}).then(function(data){
+              console.log(data);
+              cargarRutas();
+            });
 
           }
 
           function generarRuta(){ //resuelve la ruta
+            capaRutas.graphics.removeAll();
+
+            console.log(routeParams.stops)
+            if(routeParams.stops.features.length>0){
+              routeParams.stops.features=[];
+            }
             //tener en cuenta q cuando genera ruta tiene que seguir el orden de la rutalist del html, ya que ahi esta el orden
             //en que se quiere obtener los puntos de la ruta.
             var stops = document.getElementById('rutaList').getElementsByTagName('li');
@@ -194,7 +228,8 @@
               var routeResult = data.routeResults[0].route;
               routeResult.symbol = routeSymbol;
               console.log(routeResult)
-              capaParadas.graphics.add(routeResult);
+              rutaActual= capaRutas.graphics.add(routeResult);
+
           }
 
 
@@ -204,10 +239,43 @@
             }
             tablaParadas = [];
             capaParadas.graphics.removeAll();
+            capaRutas.graphics.removeAll();
+
             $('#rutaList').empty();
             $("#rutaList").sortable('refresh');
 
           }
+
+
+          function cargarRutas(){
+
+            $("#selRutas").empty();
+            var queryTask = new QueryTask("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Recreation/FeatureServer/1");
+            query = new Query();
+            query.outFields = ["*"];
+            var date=new Date("July 19, 1950 11:13:00");
+            query.where = "recordedon = 19062000";
+            query.returnGeometry = false;
+            queryTask.execute(query).then(function(res){
+                                        console.log(res)
+                                        var select = document.getElementById("selRutas");
+                                        for ( i=0 ;i < res.features.length; i++){
+                                          var option = document.createElement('option');
+                                          option.text = option.value = res.features[i].attributes.notes;
+                                          select.add(option, 0);
+                                        }
+                                       })
+
+          }
+
+
+          $(function() {
+                cargarRutas();
+            });
+
+
+
+
 
 
 
@@ -297,7 +365,7 @@
                  <div class="tab-content" style="margin-left:20px">
                     <!--Menu Home-->
                     <div id="home" class="tab-pane fade in active" >
-                       <input id="nombreRuta"  style="width: 150px;background-color:transparent;
+                       <input id="routeName"  style="width: 150px;background-color:transparent;
                                                       border-color:transparent; font-size:20px; margin-top:20px;
                                                       margin-left:10px"
                               placeholder="Nombre Ruta..."
