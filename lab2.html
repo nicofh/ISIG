@@ -4,13 +4,26 @@
         <meta charset="utf-8">
         <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
         <link rel="stylesheet" href="https://js.arcgis.com/4.5/esri/css/main.css">
-        <script src="https://js.arcgis.com/4.5/"></script>
         <link rel="stylesheet" href="css/styles.css">
         <link rel="stylesheet" href="css/bootstrap.css">
 
+
         <title>Obligatorio2-ISIG2017</title>
 
-        <script type="text/javascript">
+
+        <script>
+            var dojoConfig = {
+              packages: [{
+                name: "geolocate",
+                location: "//2gis.github.io/mock-geolocation/dist",
+                main: "geolocate"
+              }]
+            }
+          </script>
+                  <script src="https://js.arcgis.com/4.5/"></script>
+
+
+        <script >
           var numParada=0;
            require([
           "esri/Map",
@@ -35,8 +48,9 @@
             "esri/layers/FeatureLayer",
             "esri/tasks/QueryTask",
              "esri/tasks/support/Query",
-
-
+             "esri/widgets/Track",
+             "geolocate",
+             "esri/symbols/PictureMarkerSymbol",
 
 
 
@@ -46,7 +60,7 @@
 
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
-            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query) {
+            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol) {
 
 
 
@@ -74,6 +88,8 @@
           on(dom.byId("generarRuta"), "click", generarRuta);
           on(dom.byId("guardarRuta"), "click", guardarRuta);
           on(dom.byId("limpiarTodo"), "click", limpiarTodo);
+          on(dom.byId("selRutas"), "change", cargarRutaExistente);
+          on(dom.byId("simularMovil"),"click",iniciarSimulacion);
 
 
           var layer = new TileLayer("http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer");
@@ -254,12 +270,36 @@
 
             }
           }
-
+          var pathRuta=[];
           function mostrarRuta(data){
+            console.log(data)
               var routeResult = data.routeResults[0].route;
               routeResult.symbol = routeSymbol;
               console.log(routeResult)
               rutaActual= capaRutas.graphics.add(routeResult);
+
+              pathRuta= routeResult.geometry;
+
+              //console.log(routeResult.geometry.getPoint(0,0))
+              //console.log(routeResult.geometry.getPoint(0,10))
+
+          }
+
+          function iniciarSimulacion(velocidad){
+
+
+            var salto=3;
+
+            var coords=[];
+            //var path= pathRuta.getPoint()
+            for(var i=0; i<pathRuta.paths[0].length;i=i+salto){
+              var elem=pathRuta.getPoint(0,i);
+              coords.push({lat: elem.latitude,lng: elem.longitude})
+            }
+            console.log(coords)
+            stubGeolocation(coords);
+
+
 
           }
 
@@ -285,7 +325,7 @@
             query = new Query();
             query.outFields = ["*"];
             var date=new Date("July 19, 1950 11:13:00");
-            query.where = "recordedon = 19062000";
+            query.where = "condition=2";
             query.returnGeometry = false;
             queryTask.execute(query).then(function(res){
                                         console.log(res)
@@ -298,6 +338,56 @@
                                        })
 
           }
+
+          function cargarRutaExistente(){
+          var r = $( "#selRutas option:selected" ).text();
+          var queryTask = new QueryTask("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Recreation/FeatureServer/1");
+          query = new Query();
+          query.outFields = ["*"];
+          query.where = "notes = '"+ r +"'";
+          query.returnGeometry = true;
+          query.outSpatialReference = map.spatialReference;
+          queryTask.execute(query).then(function(res){
+            capaRutas.graphics.removeAll();
+            capaParadas.graphics.removeAll();
+            tablaParadas=[];
+            var ruta = new Graphic(res.features[0].geometry, routeSymbol);
+            console.log(ruta)
+            capaRutas.graphics.add(ruta);
+            document.getElementById("routeName").value = r;
+
+
+            //traerse puntos de la ruta
+              var queryTask = new QueryTask("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Events/FeatureServer/0");
+              query = new Query();
+              query.outFields = ["*"];
+              query.where = "description = '"+ r +"'";
+              query.returnGeometry = true;
+              query.outSpatialReference = map.spatialReference;
+              queryTask.execute(query).then(function(res){
+                    for(var i=0;i<res.features.length;i++){
+                      var stop = new Graphic(res.features[i].geometry, stopSymbol);
+                      capaParadas.graphics.add(stop);
+                        console.log(res.features[i].geometry)
+                       var result = locator.locationToAddress(res.features[i].geometry);
+                       result.then(function(addressCandidate){
+                            tablaParadas.push({"address" :addressCandidate.address,"latitude":addressCandidate.location.latitude, "longitude":addressCandidate.location.longitude}) ;
+
+                            console.log("tabla",tablaParadas)
+                            var list = document.getElementById('rutaList');
+                            var nuevoItem = document.createElement('li');
+                            nuevoItem.setAttribute('draggable','true');
+                            nuevoItem.ondblclick = function() {sacarParada(this);}
+                            nuevoItem.appendChild(document.createTextNode( '-      '+addressCandidate.address));
+                            list.appendChild(nuevoItem);
+                            $("#rutaList").sortable('refresh');
+
+
+                        });
+                     }
+              });
+          })
+         }
 
 
           $(function() {
@@ -367,8 +457,68 @@
 
 
 
+          //SIMULACION
+          var movilSymbolRed = new PictureMarkerSymbol('http://static.arcgis.com/images/Symbols/Transportation/CarRedFront.png', 51, 51);
 
-        });
+          var track = new Track({
+              view: view,  // Assigns the track widget to a view
+              goToLocationEnabled: false,
+              graphic: new Graphic({
+                  symbol: movilSymbolRed,
+                  // Overwrites the default symbol used for the
+                  // graphic placed at the location of the user when found
+                })
+            });
+
+          view.ui.add(track, {
+            position: "bottom-right",
+            index: 2
+          });
+
+          view.then(function() {
+                var prevLocation = view.center;
+
+                track.on("track", function() {
+                  var location = track.graphic.geometry;
+
+
+
+                  prevLocation = location.clone();
+                });
+
+      });
+
+      function getHeading(point, oldPoint) {
+        // get angle between two points
+        var angleInDegrees = Math.atan2(point.y - oldPoint.y, point.x -
+            oldPoint.x) * 180 /
+          Math.PI;
+
+        // move heading north
+        return -90 + angleInDegrees;
+      }
+
+      // geolocation simulator
+
+                //stubGeolocation();
+
+      function stubGeolocation(coords) {
+          console.log(coords)
+          currentCoordIndex = 0;
+
+        geolocate.use();
+
+        setInterval(function() {
+          geolocate.change(coords[currentCoordIndex]);
+          currentCoordIndex = (currentCoordIndex + 1) % coords.length;
+        }, 1500);
+
+
+        //track.start()
+
+        };
+
+      })
 
 
 
@@ -396,7 +546,7 @@
                  <div class="tab-content" style="margin-left:20px">
                     <!--Menu Home-->
                     <div id="home" class="tab-pane fade in active" >
-                       <input id="routeName"  style="width: 150px;background-color:transparent;
+                       <input id="routeName"  style="width: 250px;background-color:transparent;
                                                       border-color:transparent; font-size:20px; margin-top:20px;
                                                       margin-left:10px"
                               placeholder="Nombre Ruta..."
@@ -419,6 +569,7 @@
 
                       <div style="margin-top:30px">
                           <button  id="limpiarTodo" class="btn btn-primary bttons" style="margin-left:10px">Limpiar Todo</button>
+                          <button  id="simularMovil" class="btn btn-primary bttons" style="margin-left:10px"> Comenzar simulacion</button>
 
                        </div>
                     </div>
