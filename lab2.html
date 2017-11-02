@@ -302,7 +302,7 @@
               var elem=pathRuta.getPoint(0,i);
               coords.push({lat: elem.latitude,lng: elem.longitude})
             }
-            coords.push({lat:pathRuta.getPoint(0,pathRuta.paths[0].length-1).latitude, lng:pathRuta.getPoint(0,pathRuta.paths[0].length-1).longitude});
+            //coords.push({lat:pathRuta.getPoint(0,pathRuta.paths[0].length-1).latitude, lng:pathRuta.getPoint(0,pathRuta.paths[0].length-1).longitude});
             console.log(coords)
 
             stubGeolocation(coords);
@@ -544,7 +544,8 @@
 
           if(currentCoordIndex==coords.length-1){
             track.stop();
-            clearInterval(id)
+            clearInterval(id);
+            capaBuffer.graphics.removeAll();
           }
           else if(currentCoordIndex>coords.length-1){
             currentCoordIndex= coords.length-1;
