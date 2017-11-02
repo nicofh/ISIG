@@ -39,19 +39,20 @@
            "esri/geometry/support/webMercatorUtils",
            "esri/tasks/Locator",
            "esri/widgets/Search",
-            "esri/tasks/RouteTask",
-            "esri/tasks/support/RouteParameters",
-            "esri/tasks/support/FeatureSet",
-            "esri/core/urlUtils",
-             "esri/symbols/SimpleLineSymbol",
-             "esri/Color",
-            "esri/layers/FeatureLayer",
-            "esri/tasks/QueryTask",
-             "esri/tasks/support/Query",
-             "esri/widgets/Track",
-             "geolocate",
-             "esri/symbols/PictureMarkerSymbol",
-
+           "esri/tasks/RouteTask",
+           "esri/tasks/support/RouteParameters",
+           "esri/tasks/support/FeatureSet",
+           "esri/core/urlUtils",
+           "esri/symbols/SimpleLineSymbol",
+           "esri/Color",
+           "esri/layers/FeatureLayer",
+           "esri/tasks/QueryTask",
+           "esri/tasks/support/Query",
+           "esri/widgets/Track",
+           "geolocate",
+           "esri/symbols/PictureMarkerSymbol",
+           "esri/tasks/GeometryService",
+           "esri/tasks/support/BufferParameters",
 
 
            "dojo/domReady!"
@@ -60,7 +61,7 @@
 
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
-            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol) {
+            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol,GeometryService,BufferParameters) {
 
 
 
@@ -301,7 +302,7 @@
               var elem=pathRuta.getPoint(0,i);
               coords.push({lat: elem.latitude,lng: elem.longitude})
             }
-            coords.push({lat:pathRuta.getPoint(0,pathRuta.paths[0].length-1).latitude, lng:pathRuta.getPoint(0,pathRuta.paths[0].length-1).longitude});
+            //coords.push({lat:pathRuta.getPoint(0,pathRuta.paths[0].length-1).latitude, lng:pathRuta.getPoint(0,pathRuta.paths[0].length-1).longitude});
             console.log(coords)
 
             stubGeolocation(coords);
@@ -536,18 +537,20 @@
 
         var startcoord= coords[0];
         var id =setInterval(function() {
+          capaBuffer.graphics.removeAll();
           geolocate.change(coords[currentCoordIndex]);
+          buffer();
           currentCoordIndex = (currentCoordIndex + salto) ;
 
           if(currentCoordIndex==coords.length-1){
             track.stop();
-            clearInterval(id)
+            clearInterval(id);
+            capaBuffer.graphics.removeAll();
           }
           else if(currentCoordIndex>coords.length-1){
             currentCoordIndex= coords.length-1;
             salto=0;
           }
-
 
         }, 1500);
 
@@ -555,6 +558,36 @@
         track.start()
 
         };
+
+
+        //BUFFER
+        var geometryService = new GeometryService("http://sampleserver6.arcgisonline.com/arcgis/rest/services/Utilities/Geometry/GeometryServer");
+        var capaBuffer = new GraphicsLayer();
+        map.layers.add(capaBuffer);
+        var bufferParam = new BufferParameters();
+        var polySym = {
+          type: "simple-fill", // autocasts as new SimpleFillSymbol()
+          color: [140, 140, 222, 0.5],
+          outline: {
+            color: [0, 0, 0, 0.5],
+            width: 2
+          }
+        };
+
+
+        function buffer() {
+          bufferParam.distances = [500];
+          bufferParam.unit = "kilometers";
+          bufferParam.geodesic = true;
+          bufferParam.geometries = [pathRuta.getPoint(0,currentCoordIndex)];
+          geometryService.buffer(bufferParam).then(function(results){
+            capaBuffer.graphics.removeAll();
+            capaBuffer.add(new Graphic({
+               geometry: results[0],
+               symbol: polySym
+            }));
+          });
+        }
 
       })
 
