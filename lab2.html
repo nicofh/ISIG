@@ -90,6 +90,7 @@
           on(dom.byId("limpiarTodo"), "click", limpiarTodo);
           on(dom.byId("selRutas"), "change", cargarRutaExistente);
           on(dom.byId("simularMovil"),"click",iniciarSimulacion);
+          on(dom.byId("modificarVelocidad"),"click",modificarVelocidad);
 
 
           var layer = new TileLayer("http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer");
@@ -199,7 +200,7 @@
           var routeParams = new RouteParameters();
           routeParams.stops = new FeatureSet();
           routeParams.outSpatialReference = {"wkid":102100};
-
+          var salto=1;
 
 
           function guardarRuta(){
@@ -230,6 +231,8 @@
             rutaGuardada.setAttribute("trailtype",2);
             rutaGuardada.setAttribute("condition",2);
             rutaGuardada.setAttribute("difficulty",1);
+            rutaGuardada.setAttribute("segregation",0);
+
             rutaGuardada.setAttribute("notes", nombreRuta)
             var date =new Date("July 19, 1950 11:13:00");
             rutaGuardada.setAttribute("recordedon",19061950)
@@ -253,7 +256,7 @@
             //en que se quiere obtener los puntos de la ruta.
             var stops = document.getElementById('rutaList').getElementsByTagName('li');
             var lugar;
-            console.log(stops)
+            console.log("stops",stops)
             for (var i=0; i < stops.length; i++){
               lugar = stops[i].innerHTML;
               console.log(lugar)
@@ -264,6 +267,7 @@
                 }
               }
             }
+            console.log("routeParams",routeParams.stops.features);
 
             if(routeParams.stops.features.length>=2){
                 routeTask.solve(routeParams).then(mostrarRuta)
@@ -281,26 +285,44 @@
               pathRuta= routeResult.geometry;
 
               //console.log(routeResult.geometry.getPoint(0,0))
-              //console.log(routeResult.geometry.getPoint(0,10))
+              //console.log(routeResult.geometry.getPoint(0,))
 
           }
 
-          function iniciarSimulacion(velocidad){
+          function iniciarSimulacion(){
+            modificarVelocidad()
 
 
-            var salto=3;
+
 
             var coords=[];
             //var path= pathRuta.getPoint()
-            for(var i=0; i<pathRuta.paths[0].length;i=i+salto){
+            for(var i=0; i<pathRuta.paths[0].length;i=i+1){
               var elem=pathRuta.getPoint(0,i);
               coords.push({lat: elem.latitude,lng: elem.longitude})
             }
+            coords.push({lat:pathRuta.getPoint(0,pathRuta.paths[0].length-1).latitude, lng:pathRuta.getPoint(0,pathRuta.paths[0].length-1).longitude});
             console.log(coords)
+
             stubGeolocation(coords);
 
 
 
+          }
+
+          function modificarVelocidad(){
+            var velocidad=document.getElementById('velocidad').value;
+            salto= Math.floor((pathRuta.paths[0].length) /(1000/velocidad));
+            if(velocidad<=33){
+              track.graphic.symbol= movilSymbolGreen;
+            }
+            else if( velocidad>=66){
+               track.graphic.symbol= movilSymbolRed;
+
+            }
+            else{
+              track.graphic.symbol= movilSymbolYellow;
+            }
           }
 
 
@@ -320,12 +342,11 @@
 
           function cargarRutas(){
 
-            $("#selRutas").empty();
             var queryTask = new QueryTask("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Recreation/FeatureServer/1");
             query = new Query();
             query.outFields = ["*"];
             var date=new Date("July 19, 1950 11:13:00");
-            query.where = "condition=2";
+            query.where = "trailtype = "+ 2 + " AND condition = " + 2 + "AND difficulty = " + 1+"AND segregation = " + 0;
             query.returnGeometry = false;
             queryTask.execute(query).then(function(res){
                                         console.log(res)
@@ -340,6 +361,9 @@
           }
 
           function cargarRutaExistente(){
+
+
+
           var r = $( "#selRutas option:selected" ).text();
           var queryTask = new QueryTask("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Recreation/FeatureServer/1");
           query = new Query();
@@ -392,6 +416,8 @@
 
           $(function() {
                 cargarRutas();
+                        geolocate.use();
+
             });
 
 
@@ -459,12 +485,13 @@
 
           //SIMULACION
           var movilSymbolRed = new PictureMarkerSymbol('http://static.arcgis.com/images/Symbols/Transportation/CarRedFront.png', 51, 51);
+          var movilSymbolGreen = new PictureMarkerSymbol('http://static.arcgis.com/images/Symbols/Transportation/CarGreenFront.png', 51, 51);
+          var movilSymbolYellow = new PictureMarkerSymbol('http://static.arcgis.com/images/Symbols/Transportation/CarYellowFront.png', 51, 51);
 
           var track = new Track({
               view: view,  // Assigns the track widget to a view
               goToLocationEnabled: false,
               graphic: new Graphic({
-                  symbol: movilSymbolRed,
                   // Overwrites the default symbol used for the
                   // graphic placed at the location of the user when found
                 })
@@ -477,7 +504,8 @@
 
           view.then(function() {
                 var prevLocation = view.center;
-
+                var startLocation= track.graphic.geometry;
+                console.log("startLocation",startLocation);
                 track.on("track", function() {
                   var location = track.graphic.geometry;
 
@@ -500,21 +528,31 @@
 
       // geolocation simulator
 
-                //stubGeolocation();
-
       function stubGeolocation(coords) {
+
+
           console.log(coords)
           currentCoordIndex = 0;
 
-        geolocate.use();
-
-        setInterval(function() {
+        var startcoord= coords[0];
+        var id =setInterval(function() {
           geolocate.change(coords[currentCoordIndex]);
-          currentCoordIndex = (currentCoordIndex + 1) % coords.length;
+          currentCoordIndex = (currentCoordIndex + salto) ;
+
+          if(currentCoordIndex==coords.length-1){
+            track.stop();
+            clearInterval(id)
+          }
+          else if(currentCoordIndex>coords.length-1){
+            currentCoordIndex= coords.length-1;
+            salto=0;
+          }
+
+
         }, 1500);
 
 
-        //track.start()
+        track.start()
 
         };
 
@@ -569,9 +607,24 @@
 
                       <div style="margin-top:30px">
                           <button  id="limpiarTodo" class="btn btn-primary bttons" style="margin-left:10px">Limpiar Todo</button>
-                          <button  id="simularMovil" class="btn btn-primary bttons" style="margin-left:10px"> Comenzar simulacion</button>
 
                        </div>
+
+
+                       <div>
+                           <div style="margin-left:10px; margin-top:60px"> <h3> Simulacion</h3></div>
+                           <div style="margin-left:10px; margin-top:20px; " > <h5 style="display:inline-block">Velocidad:</h5>
+                                 <input id="velocidad"  style="width: 50px;background-color:transparent;
+                                                      border-color:white; font-size:15px; display:inline-block"
+                              value="100"
+
+
+                        ></input><h5 style="display:inline-block" > %</h5>
+                           </div>
+                           <button  id="simularMovil" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Comenzar simulacion</button>
+                           <button  id="modificarVelocidad" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Modificar velocidad</button>
+
+                        </div>
                     </div>
                   </div>
 
