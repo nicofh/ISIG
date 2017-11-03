@@ -53,6 +53,7 @@
            "esri/symbols/PictureMarkerSymbol",
            "esri/tasks/GeometryService",
            "esri/tasks/support/BufferParameters",
+           "esri/widgets/Print",
 
 
            "dojo/domReady!"
@@ -61,7 +62,8 @@
 
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
-            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol,GeometryService,BufferParameters) {
+            RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol,GeometryService,
+            BufferParameters,Print) {
 
 
 
@@ -92,6 +94,7 @@
           on(dom.byId("selRutas"), "change", cargarRutaExistente);
           on(dom.byId("simularMovil"),"click",iniciarSimulacion);
           on(dom.byId("modificarVelocidad"),"click",modificarVelocidad);
+          on(dom.byId("exportpdf"),"click",exportpdf);
 
 
           var layer = new TileLayer("http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer");
@@ -136,10 +139,11 @@
 
           var locationPoint;
           function addStop(evt) {
-            console.log(evt.mapPoint)
             locationPoint = new Graphic(evt.mapPoint, stopSymbol);
             capaParadas.graphics.add(locationPoint)
-            var result = locator.locationToAddress(webMercatorUtils.webMercatorToGeographic(evt.mapPoint), 100);
+                        console.log("MAPPOINT",webMercatorUtils.webMercatorToGeographic(evt.mapPoint))
+
+            var result = locator.locationToAddress(webMercatorUtils.webMercatorToGeographic(evt.mapPoint));
             result.then(function(addressCandidate){
                 console.log(addressCandidate.address, addressCandidate.location.latitude, addressCandidate.location.longitude)
                 tablaParadas.push({"address" :addressCandidate.address,"latitude":addressCandidate.location.latitude, "longitude":addressCandidate.location.longitude}) ;
@@ -199,9 +203,11 @@
 
           var routeTask = new RouteTask("http://route.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/");
           var routeParams = new RouteParameters();
-          routeParams.stops = new FeatureSet();
-          routeParams.outSpatialReference = {"wkid":102100};
+              routeParams.stops = new FeatureSet();
+              routeParams.outSpatialReference = {"wkid":102100};
           var salto=1;
+          var exportar= 0;
+
 
 
           function guardarRuta(){
@@ -249,9 +255,11 @@
           function generarRuta(){ //resuelve la ruta
             capaRutas.graphics.removeAll();
 
-            console.log(routeParams.stops)
+            console.log("stops generar ruta",routeParams.stops)
+
             if(routeParams.stops.features.length>0){
               routeParams.stops.features=[];
+              console.log(routeParams.stops.features)
             }
             //tener en cuenta q cuando genera ruta tiene que seguir el orden de la rutalist del html, ya que ahi esta el orden
             //en que se quiere obtener los puntos de la ruta.
@@ -271,7 +279,8 @@
             console.log("routeParams",routeParams.stops.features);
 
             if(routeParams.stops.features.length>=2){
-                routeTask.solve(routeParams).then(mostrarRuta)
+
+              routeTask.solve(routeParams).then(mostrarRuta)
 
             }
           }
@@ -291,6 +300,7 @@
           }
 
           function iniciarSimulacion(){
+            console.log(pathRuta)
             modificarVelocidad()
 
 
@@ -342,7 +352,7 @@
 
 
           function cargarRutas(){
-
+            $('#selRutas').empty()
             var queryTask = new QueryTask("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Recreation/FeatureServer/1");
             query = new Query();
             query.outFields = ["*"];
@@ -363,7 +373,10 @@
 
           function cargarRutaExistente(){
 
-
+          capaRutas.graphics.removeAll();
+          capaParadas.graphics.removeAll();
+          tablaParadas=[];
+          $("#rutaList").empty();
 
           var r = $( "#selRutas option:selected" ).text();
           var queryTask = new QueryTask("http://sampleserver5.arcgisonline.com/arcgis/rest/services/LocalGovernment/Recreation/FeatureServer/1");
@@ -373,13 +386,13 @@
           query.returnGeometry = true;
           query.outSpatialReference = map.spatialReference;
           queryTask.execute(query).then(function(res){
-            capaRutas.graphics.removeAll();
-            capaParadas.graphics.removeAll();
-            tablaParadas=[];
+
             var ruta = new Graphic(res.features[0].geometry, routeSymbol);
             console.log(ruta)
             capaRutas.graphics.add(ruta);
+            pathRuta= ruta.geometry;
             document.getElementById("routeName").value = r;
+
 
 
             //traerse puntos de la ruta
@@ -393,8 +406,8 @@
                     for(var i=0;i<res.features.length;i++){
                       var stop = new Graphic(res.features[i].geometry, stopSymbol);
                       capaParadas.graphics.add(stop);
-                        console.log(res.features[i].geometry)
-                       var result = locator.locationToAddress(res.features[i].geometry);
+                        console.log("CARGAR RUTA",res.features[i].geometry)
+                       var result = locator.locationToAddress((res.features[i].geometry));
                        result.then(function(addressCandidate){
                             tablaParadas.push({"address" :addressCandidate.address,"latitude":addressCandidate.location.latitude, "longitude":addressCandidate.location.longitude}) ;
 
@@ -543,9 +556,10 @@
           currentCoordIndex = (currentCoordIndex + salto) ;
 
           if(currentCoordIndex==coords.length-1){
+
             track.stop();
             clearInterval(id);
-            capaBuffer.graphics.removeAll();
+            clearBuffer()
           }
           else if(currentCoordIndex>coords.length-1){
             currentCoordIndex= coords.length-1;
@@ -558,6 +572,15 @@
         track.start()
 
         };
+
+        function clearBuffer(){
+          setInterval(function() {
+                   capaBuffer.graphics.removeAll();
+
+
+        }, 1500);
+
+        }
 
 
         //BUFFER
@@ -589,7 +612,40 @@
           });
         }
 
+
+
+
+      //print map
+
+        var print;
+        function exportpdf(){
+
+          if(exportar==0){
+
+            print = new Print({
+                view: view,
+                printServiceUrl: 'http://sampleserver5.arcgisonline.com/arcgis/rest/services/Utilities/PrintingTools/GPServer/Export%20Web%20Map%20Task'
+              });
+              // Adds widget below other elements in the top left corner of the view
+              view.ui.add(print, {
+                position: "bottom-left"
+
+              });
+              exportar=1;
+          }
+          else{
+            exportar=0;
+            print.destroy()
+          }
+        }
+
       })
+
+
+
+
+
+
 
 
 
@@ -645,8 +701,12 @@
 
 
                        <div>
-                           <div style="margin-left:10px; margin-top:60px"> <h3> Simulacion</h3></div>
-                           <div style="margin-left:10px; margin-top:20px; " > <h5 style="display:inline-block">Velocidad:</h5>
+                           <div style="margin-left:10px; margin-top:10px">
+                           <hr style="background-color: dimgrey !important;
+                                        color: dimgrey !important;
+                                        border: solid 0.4px dimgrey !important;margin-right:20px" />
+                           <h3> Simulacion</h3></div>
+                           <div style="margin-left:10px; margin-top:7px; " > <h5 style="display:inline-block">Velocidad:</h5>
                                  <input id="velocidad"  style="width: 50px;background-color:transparent;
                                                       border-color:white; font-size:15px; display:inline-block"
                               value="100"
@@ -657,6 +717,13 @@
                            <button  id="simularMovil" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Comenzar simulacion</button>
                            <button  id="modificarVelocidad" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Modificar velocidad</button>
 
+                        </div>
+
+                        <div>
+                          <hr style="background-color: dimgrey !important;
+                                        color: dimgrey !important;
+                                        border: solid 0.4px dimgrey !important;margin-right:20px" />
+                            <button  id="exportpdf" class="btn btn-primary bttons" style="margin-left:10px;margin-top:5px"> Exportar PDF</button>
                         </div>
                     </div>
                   </div>
