@@ -144,6 +144,7 @@
 
             //Capa de Condados
             var capaCondados = new GraphicsLayer();
+            capaCondados.opacity = 0.5;
             map.layers.add(capaCondados);
 
 
@@ -362,9 +363,15 @@
             capaParadas.graphics.removeAll();
             capaRutas.graphics.removeAll();
             capaCondados.removeAll();
+            capaBuffer.removeAll();
 
             $('#rutaList').empty();
             $("#rutaList").sortable('refresh');
+
+            // borro los intervals corriendo
+            for (var i=intervals.length - 1; i>=0 ; i--) {
+              clearInterval(intervals[i]);
+            }
 
           }
 
@@ -558,6 +565,9 @@
         return -90 + angleInDegrees;
       }
 
+
+      var intervals = [];
+
       // geolocation simulator
 
       function stubGeolocation(coords) {
@@ -588,7 +598,9 @@
             salto=0;
           }
 
-        }, 1600);
+        }, 3500);
+
+        intervals.push(id);
 
         track.start()
 
@@ -631,7 +643,8 @@
 
 
         function buffer() {
-          bufferParam.distances = [100];
+          var radio=document.getElementById('radio').value;
+          bufferParam.distances = [radio];
           bufferParam.unit = "kilometers";
           bufferParam.geodesic = true;
           bufferParam.geometries = [pathRuta.getPoint(0,currentCoordIndex)];
@@ -782,6 +795,16 @@
 
                         ></input><h5 style="display:inline-block" > %</h5>
                            </div>
+
+                          <div style="margin-left:10px; margin-top:7px; " > <h5 style="display:inline-block">Radio Buffer:</h5>
+                                 <input id="radio"  style="width: 50px;background-color:transparent;
+                                                      border-color:white; font-size:15px; display:inline-block"
+                              value="10"
+
+
+                        ></input><h5 style="display:inline-block" > km</h5>
+                           </div>
+
                            <button  id="simularMovil" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Comenzar simulacion</button>
                            <button  id="modificarVelocidad" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Modificar velocidad</button>
 
