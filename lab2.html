@@ -56,6 +56,7 @@
            "esri/widgets/Print",
            "esri/symbols/SimpleFillSymbol",
             "esri/geometry/Point",
+			"esri/symbols/TextSymbol",
 
            "dojo/domReady!"
 
@@ -64,7 +65,7 @@
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
             RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol,GeometryService,
-            BufferParameters,Print,SimpleFillSymbol,Point) {
+            BufferParameters,Print,SimpleFillSymbol,Point, TextSymbol) {
 
 
 
@@ -146,6 +147,14 @@
             var capaCondados = new GraphicsLayer();
             capaCondados.opacity = 0.5;
             map.layers.add(capaCondados);
+			
+			//Capa Buffer
+			var capaBuffer = new GraphicsLayer();
+            map.layers.add(capaBuffer);
+			
+			//Capa Labels
+			var capaLabels = new GraphicsLayer();
+            map.layers.add(capaLabels);
 
 
 
@@ -364,6 +373,7 @@
             capaRutas.graphics.removeAll();
             capaCondados.removeAll();
             capaBuffer.removeAll();
+			capaLabels.removeAll();
 
             $('#rutaList').empty();
             $("#rutaList").sortable('refresh');
@@ -579,6 +589,7 @@
         var startcoord= coords[0];
         var id =setInterval(function() {
           capaBuffer.graphics.removeAll();
+		  capaLabels.graphics.removeAll();
           capaCondados.graphics.removeAll();
           capaCondados.removeAll()
           geolocate.change(coords[currentCoordIndex]);
@@ -592,6 +603,7 @@
 
             clearBuffer()
             clearCondados();
+			clearLabels();
           }
           else if(currentCoordIndex>coords.length-1){
             currentCoordIndex= coords.length-1;
@@ -623,14 +635,20 @@
         }, 1500);
 
         }
+		function clearLabels(){
+          setInterval(function() {
+                   capaLabels.graphics.removeAll();
+
+
+        }, 1500);
+
+        }
 
 
 
 
         //BUFFER
         var geometryService = new GeometryService("http://sampleserver6.arcgisonline.com/arcgis/rest/services/Utilities/Geometry/GeometryServer");
-        var capaBuffer = new GraphicsLayer();
-        map.layers.add(capaBuffer);
         var bufferParam = new BufferParameters();
         var polySym = {
           type: "simple-fill", // autocasts as new SimpleFillSymbol()
@@ -641,11 +659,12 @@
           }
         };
 
-
+		var radio;
+		
         function buffer() {
-          var radio=document.getElementById('radio').value;
+          radio=document.getElementById('radio').value;
           bufferParam.distances = [radio];
-          bufferParam.unit = "kilometers";
+          bufferParam.unit = "miles";
           bufferParam.geodesic = true;
           bufferParam.geometries = [pathRuta.getPoint(0,currentCoordIndex)];
           geometryService.buffer(bufferParam).then(function(results){
@@ -697,21 +716,48 @@
             query.outFields = ["OBJECTID","TOTPOP_CY","NAME","LANDAREA"];
             query.geometry =  bufferGrafico.geometry;
             query.returnGeometry = true;
+			query.spatialRelationship = "intersects"; 
             servicioCondados.execute(query).then(obtenerInterseccionCondados)
           }
 
-          var condadosInt = [];
-          var condadosIntAtr = [];
+      
           function obtenerInterseccionCondados(res){
             console.log("Res",res)
+			var areaBuffer= radio*radio* 3.14;
+			var totalBufferPop=0;
+			var overlappedCountiePop=0;
             for (var i = 0;  i < res.features.length; i++) {
               var condado = Graphic(res.features[i].geometry, condadoSymbol);
               capaCondados.graphics.add(condado);
-              condadosInt[i] = res.features[i].geometry;
-              condadosIntAtr[i] = res.features[i].attributes;
+			  console.log("atributossssssssss");
+			  console.log(res.features[i].attributes);
+			  console.log("Populationnnnnnnnnnnnnnnnn");
+			  var pop= res.features[i].attributes.TOTPOP_CY;
+			  console.log(pop);
+			  overlappedCountiePop= pop*(areaBuffer/(res.features[i].attributes.LANDAREA));
+			  totalBufferPop= totalBufferPop+overlappedCountiePop;
             }
-            console.log("areaCondados");
-              gsvc2.intersect(condadosInt, bufferGrafico.geometry, calcularAreaInterseccion, errorHandler)
+			var textSymbol = {
+				type: "text",  // autocasts as new TextSymbol()
+				color: "black",
+				borderLineColor: "black",
+				haloColor: "gray",
+				haloSize: "1px",
+				text: "Buffer Population: "+Math.floor(totalBufferPop),
+				xoffset: 3,
+				yoffset: 3,
+				font: {  // autocast as new Font()
+					size: 12,
+					family: "sans-serif",
+					weight: "bolder"
+				}
+			};
+			var label = new Graphic({ 
+				geometry:  res.features[0].geometry.centroid,
+				symbol: textSymbol,
+			 });
+			capaLabels.graphics.add(label);
+            
 
 
           }
