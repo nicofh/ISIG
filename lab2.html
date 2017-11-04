@@ -55,7 +55,7 @@
            "esri/tasks/support/BufferParameters",
            "esri/widgets/Print",
            "esri/symbols/SimpleFillSymbol",
-
+            "esri/geometry/Point",
 
            "dojo/domReady!"
 
@@ -64,7 +64,7 @@
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
             RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol,GeometryService,
-            BufferParameters,Print,SimpleFillSymbol) {
+            BufferParameters,Print,SimpleFillSymbol,Point) {
 
 
 
@@ -274,24 +274,23 @@
           function generarRuta(){ //resuelve la ruta
             capaRutas.graphics.removeAll();
 
-            console.log("stops generar ruta",routeParams.stops)
 
             if(routeParams.stops.features.length>0){
               routeParams.stops.features=[];
-              console.log(routeParams.stops.features)
             }
             //tener en cuenta q cuando genera ruta tiene que seguir el orden de la rutalist del html, ya que ahi esta el orden
             //en que se quiere obtener los puntos de la ruta.
             var stops = document.getElementById('rutaList').getElementsByTagName('li');
             var lugar;
-            console.log("stops",stops)
             for (var i=0; i < stops.length; i++){
               lugar = stops[i].innerHTML;
-              console.log(lugar)
               for(var j=0; j< tablaParadas.length; j++){
-                console.log()
                 if (lugar.replace('-      ','') == tablaParadas[j].address){
-                  routeParams.stops.features.push(capaParadas.graphics.items[j]);
+                  console.log(capaParadas.graphics.items[j].geometry)
+                  var point = new Point( tablaParadas[j].longitude,tablaParadas[j].latitude);
+                  var graphic= new Graphic(point,stopSymbol);
+                  console.log("POINT",point);
+                  routeParams.stops.features.push(graphic);
                 }
               }
             }
@@ -299,7 +298,7 @@
 
             if(routeParams.stops.features.length>=2){
 
-              routeTask.solve(routeParams).then(mostrarRuta)
+              routeTask.solve(routeParams).then(mostrarRuta,function(err){console.log(err)})
 
             }
           }
@@ -308,7 +307,6 @@
             console.log(data)
               var routeResult = data.routeResults[0].route;
               routeResult.symbol = routeSymbol;
-              console.log(routeResult)
               rutaActual= capaRutas.graphics.add(routeResult);
 
               pathRuta= routeResult.geometry;
@@ -644,8 +642,9 @@
                symbol: polySym
             });
             capaBuffer.add(bufferGrafico);
+            obtenerCondados();
+
           });
-          obtenerCondados();
 
         }
 
@@ -735,7 +734,7 @@
 
                 <ul class="nav nav-pills" style="background-color:#d4d4d4">
                   <li class="active" style="padding-left:10px"><a data-toggle="pill" href="#home">Inicio</a></li>
-                  <li><a data-toggle="pill" href="#menu1">Simulacion</a></li>
+                  <li><a data-toggle="pill" href="#menu1">Informacion</a></li>
 
                 </ul>
 
