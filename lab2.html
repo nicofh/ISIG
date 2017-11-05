@@ -65,7 +65,7 @@
 
         ], function(Map,MapView,dom,on,TileLayer,PictureMarkerSymbol,SimpleRenderer,GraphicsLayer,Graphic,webMercatorUtils,Locator,Search,RouteTask,
             RouteParameters,FeatureSet,urlUtils,SimpleLineSymbol,Color,FeatureLayer,QueryTask,Query,Track,geolocate,PictureMarkerSymbol,GeometryService,
-            BufferParameters,Print,SimpleFillSymbol,Point, TextSymbol) {
+            BufferParameters,Print,SimpleFillSymbol,Point,TextSymbol) {
 
 
 
@@ -739,7 +739,7 @@
             }
 			var textSymbol = {
 				type: "text",  // autocasts as new TextSymbol()
-				color: "black",
+				color: "red",
 				borderLineColor: "black",
 				haloColor: "gray",
 				haloSize: "1px",
@@ -753,7 +753,7 @@
 				}
 			};
 			var label = new Graphic({ 
-				geometry:  res.features[0].geometry.centroid,
+				geometry:   bufferGrafico.geometry.getPoint(0,0),
 				symbol: textSymbol,
 			 });
 			capaLabels.graphics.add(label);
