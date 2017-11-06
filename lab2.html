@@ -147,11 +147,11 @@
             var capaCondados = new GraphicsLayer();
             capaCondados.opacity = 0.5;
             map.layers.add(capaCondados);
-			
+
 			//Capa Buffer
 			var capaBuffer = new GraphicsLayer();
             map.layers.add(capaBuffer);
-			
+
 			//Capa Labels
 			var capaLabels = new GraphicsLayer();
             map.layers.add(capaLabels);
@@ -374,6 +374,7 @@
             capaCondados.removeAll();
             capaBuffer.removeAll();
 			capaLabels.removeAll();
+            track.stop();
 
             $('#rutaList').empty();
             $("#rutaList").sortable('refresh');
@@ -660,7 +661,7 @@
         };
 
 		var radio;
-		
+
         function buffer() {
           radio=document.getElementById('radio').value;
           bufferParam.distances = [radio];
@@ -716,11 +717,11 @@
             query.outFields = ["OBJECTID","TOTPOP_CY","NAME","LANDAREA"];
             query.geometry =  bufferGrafico.geometry;
             query.returnGeometry = true;
-			query.spatialRelationship = "intersects"; 
+			query.spatialRelationship = "intersects";
             servicioCondados.execute(query).then(obtenerInterseccionCondados)
           }
 
-      
+
           function obtenerInterseccionCondados(res){
             console.log("Res",res)
 			var areaBuffer= radio*radio* 3.14;
@@ -752,12 +753,12 @@
 					weight: "bolder"
 				}
 			};
-			var label = new Graphic({ 
+			var label = new Graphic({
 				geometry:   bufferGrafico.geometry.getPoint(0,0),
 				symbol: textSymbol,
 			 });
 			capaLabels.graphics.add(label);
-            
+
 
 
           }
@@ -793,7 +794,6 @@
 
                 <ul class="nav nav-pills" style="background-color:#d4d4d4">
                   <li class="active" style="padding-left:10px"><a data-toggle="pill" href="#home">Inicio</a></li>
-                  <li><a data-toggle="pill" href="#menu1">Informacion</a></li>
 
                 </ul>
 
@@ -852,7 +852,7 @@
                            </div>
 
                            <button  id="simularMovil" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Comenzar simulacion</button>
-                           <button  id="modificarVelocidad" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Modificar velocidad</button>
+                           <button  id="modificarVelocidad" class="btn btn-primary bttons" style="margin-left:10px;margin-top:30px"> Modificar simulacion</button>
 
                         </div>
 
@@ -860,7 +860,7 @@
                           <hr style="background-color: dimgrey !important;
                                         color: dimgrey !important;
                                         border: solid 0.4px dimgrey !important;margin-right:20px" />
-                            <button  id="exportpdf" class="btn btn-primary bttons" style="margin-left:10px;margin-top:5px"> Exportar PDF</button>
+                            <button  id="exportpdf" class="btn btn-primary bttons" style="margin-left:10px;margin-top:5px"> Exportar Mapa</button>
                         </div>
                     </div>
                   </div>
